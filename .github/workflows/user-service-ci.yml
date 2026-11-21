@@ -1,0 +1,45 @@
+
+name: CloudCart User Service CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'services/user-service/**'
+      - '.github/workflows/user-service-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  AWS_REGION: ap-south-1
+  ECR_REPOSITORY: cloudcart/user-service
+
+jobs:
+  build-and-push:
+    name: Build and Push to ECR
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials using OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::758645618250:role/cloudcart-github-actions-role
+          aws-region: ap-south-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./services/user-service
+          push: true
+          tags: ${{ steps.login-ecr.outputs.registry }}/cloudcart/user-service:${{ github.sha }}
